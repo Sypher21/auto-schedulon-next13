@@ -1,0 +1,37 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "cockroachdb"
+  url      = env("DATABASE_URL")
+}
+
+
+
+model Team {
+  id        String          @id @default(dbgenerated("gen_random_uuid()"))
+  name      String
+  userId    String
+  employees Employee[]      
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+}
+
+model Employee {
+  id        String          @id @default(dbgenerated("gen_random_uuid()"))         
+  teams     Team[]          
+  imageUrl  String          
+  firstName String
+  lastName  String
+  userId    String          @unique
+  email     String          @unique
+  role      String          @default("Mitarbeiter")
+  hours     Float         
+  createdAt DateTime?       @default(now())
+  updatedAt DateTime?       @updatedAt
+}
+
