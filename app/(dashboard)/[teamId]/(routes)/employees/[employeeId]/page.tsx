@@ -16,6 +16,7 @@ const employee =
     : null;
 
    
+    await prismadb.$disconnect();
 
     return (
       <div className="flex-col">

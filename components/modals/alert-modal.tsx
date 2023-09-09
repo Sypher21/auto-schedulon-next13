@@ -30,7 +30,7 @@ export const AlertModal: React.FC<AlertModalProps> = ({
 
   return (
     <Modal
-      title="Team löschen?"
+      title="Dieses Objekt löschen?"
       description="Dieser Vorgang kann nicht rückgängig gemacht werden"
       isOpen={isOpen}
       onClose={onClose}

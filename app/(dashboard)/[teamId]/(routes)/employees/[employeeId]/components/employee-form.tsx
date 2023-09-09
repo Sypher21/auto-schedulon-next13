@@ -105,7 +105,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
       router.push(`/${params.teamId}/employees`);
       toast.success('Mitarbeiter gelöscht.');
     } catch (error: any) {
-      toast.error('Es müssen zuerst alle Mitarbeiter entfernt werden');
+      toast.error('Etwas ist schief gelaufen!');
     } finally {
       setLoading(false);
       setOpen(false);

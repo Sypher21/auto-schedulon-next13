@@ -20,20 +20,8 @@ export async function POST(
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    if (!firstName) {
-      return new NextResponse("Firstname is required", { status: 400 });
-    }
-
-    if (!lastName) {
-      return new NextResponse("Lastname is required", { status: 400 });
-    }
-
-    if (!email) {
-      return new NextResponse("Email is required", { status: 400 });
-    }
-
-    if (!hours) {
-      return new NextResponse("Hours are required", { status: 400 });
+    if (!firstName || !lastName || !email || !hours) {
+      return new NextResponse("Fields are required", { status: 400 });
     }
 
     if (!params.teamId) {
@@ -107,9 +95,9 @@ export async function POST(
     if (checkIfEmployeeExists) {
       await prismadb.team
         .findMany({
-          include: {
+          where: {
             employees: {
-              where: {
+              some: {
                 id: checkIfEmployeeExists.id,
               },
             },
@@ -164,7 +152,7 @@ export async function POST(
         },
       });
 
-      console.log(employee, "employee didn't exist");
+      
       return NextResponse.json(employee);
     }
   } catch (error) {
@@ -185,7 +173,7 @@ export async function GET(
     }
 
     const employees = await prismadb.employee.findMany({
-      include: {
+      include:{
         teams:{
           where:{
             id: params.teamId

@@ -67,11 +67,43 @@ export async function DELETE(
             return new NextResponse("Team id is required", { status: 400 });
           }
 
-        const team = await prismadb.team.deleteMany({
+        try {
+            const checkIsAdminInTeam = await prismadb.employee.findFirst({
+              where: {
+                userId,
+              },
+              include:{
+                teams: {
+                  where: {
+                    id: params.teamId,
+                  },
+                },
+              },
+            });
+      
+            if (checkIsAdminInTeam?.role !== "Admin" ) {
+              return new NextResponse("Unauthorized", { status: 403 });
+            }
+        } catch (error) {
+            return new NextResponse("Internal error", { status: 500 });
+        } 
+
+        //deleteing all Refs
+        await prismadb.team.update({
             where:{
                 id: params.teamId,
-                userId,
             },
+            data:{
+                employees: {
+                    set: [],
+                }
+            }
+        })
+
+        const team = await prismadb.team.delete({
+            where:{
+                id: params.teamId,
+            }
         });
 
         return NextResponse.json(team);

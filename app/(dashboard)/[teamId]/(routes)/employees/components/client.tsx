@@ -5,10 +5,16 @@ import { Heading } from "@/components/ui/heading"
 import { Separator } from "@/components/ui/separator"
 import { Plus } from "lucide-react"
 import { useParams, useRouter} from "next/navigation"
+import { EmployeeColumn, columns } from "./columns"
+import { DataTable } from "@/components/ui/data-table"
 
+interface EmployeeClientPorps {
+    data: EmployeeColumn[],
+}
 
-
-export const EmployeeClient = () => {
+export const EmployeeClient: React.FC<EmployeeClientPorps> = ({
+    data
+}) => {
 
     const router = useRouter();
     const params = useParams();
@@ -17,7 +23,7 @@ export const EmployeeClient = () => {
     <>
         <div className="flex items-center justify-between">
             <Heading 
-            title="Mitarbeiter (0)"
+            title={`Mitarbeiter ${data.length}`}
             description="Manage Mitarbeiter für diese Gruppe"/>
             <Button
                 onClick={() => router.push(`/${params.teamId}/employees/new`)}>
@@ -26,7 +32,7 @@ export const EmployeeClient = () => {
             </Button>
         </div>
         <Separator/>
-
+        <DataTable columns={columns} data={data} searchKey="lastName" />
     </>
     )
 }

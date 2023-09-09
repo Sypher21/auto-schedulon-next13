@@ -3,6 +3,7 @@ import { NextResponse } from "next/server"
 import { clerkClient } from "@clerk/nextjs";
 
 import prismadb from "@/lib/prismadb";
+import { boolean } from "zod";
 
 export async function GET(
   req: Request,
@@ -42,42 +43,38 @@ export async function PATCH(
         const { firstName, lastName, email, role, hours } = body;
 
         if(!userId) {
-            return new NextResponse("Unauthorized", {status: 401})
+          return new NextResponse("Unauthorized", {status: 401})
         }
 
-        if (!firstName) {
-            return new NextResponse("Firstname is required", { status: 400 });
-          }
-      
-          if (!lastName) {
-            return new NextResponse("Lastname is required", { status: 400 });
-          }
-      
-          if (!email) {
-            return new NextResponse("Email is required", { status: 400 });
-          }
-      
-          if (!hours) {
-            return new NextResponse("Hours are required", { status: 400 });
-          }
+        if (!firstName || !lastName || !email || !hours) {
+            return new NextResponse("Fields are required", { status: 400 });
+        }
 
         if (!params.employeeId) {
             return new NextResponse("Employee id is required", { status: 400 });
-          }
-        try {
-          const teamByUserId = await prismadb.team.findFirst({
-            where: {
-              id: params.teamId,
-              userId,
-            },
-          });
-
-          if (!teamByUserId) {
-            return new NextResponse("Unauthorized", { status: 403 });
-          }
-        } catch (error) {
-          return new NextResponse("Internal error", { status: 500 });
         }
+
+          try {
+            const checkIsAdminInTeam = await prismadb.employee.findFirst({
+              where: {
+                userId,
+              },
+              include:{
+                teams: {
+                  where: {
+                    id: params.teamId,
+                  },
+                },
+              },
+            });
+            
+            
+            if (checkIsAdminInTeam?.role !== "Admin" ) {
+              return new NextResponse("Unauthorized", { status: 403 });
+            }
+          } catch (error) {
+            return new NextResponse("Internal error", { status: 500 });
+          } 
 
         const employee = await prismadb.employee.updateMany({
             where:{
@@ -117,7 +114,7 @@ export async function DELETE(
         }
 
         try {
-          const checkForAdminInTeam = await prismadb.employee.findFirst({
+          const checkIsAdminInTeam = await prismadb.employee.findFirst({
             where: {
               userId,
             },
@@ -129,30 +126,62 @@ export async function DELETE(
               },
             },
           });
-    
-          if (checkForAdminInTeam?.role !== "Admin" ) {
+          if (checkIsAdminInTeam?.role !== "Admin" ) {
             return new NextResponse("Unauthorized", { status: 403 });
           }
         } catch (error) {
           return new NextResponse("Internal error", { status: 500 });
         } 
        
-        const clerkUserId = await prismadb.employee.findFirst({
+        const checkIsInMoreTeams = await prismadb.employee.findFirst({
             where: {
                 id: params.employeeId,
+            },
+            include:{
+              _count: {
+                select: {
+                  teams: true
+                },
+              }
             }
         })
-        console.log(clerkUserId?.userId, "den gibts");
-        if(clerkUserId) {
-            await clerkClient.users.deleteUser(clerkUserId.userId);
+
+      var disconnectFromTeam: boolean = false;
+
+        if(checkIsInMoreTeams) {
+          // Teams count < 2 (1 oder 0) dann lösche die Email auch bei AuthProvider!
+          if(checkIsInMoreTeams?._count.teams < 2){
+            await clerkClient.users.deleteUser(checkIsInMoreTeams.userId);
+
+          } else {
+            disconnectFromTeam = true;
+          }
         }
 
-        const employee = await prismadb.employee.deleteMany({
+        var employee;
+
+        if(!disconnectFromTeam) {
+
+         employee = await prismadb.employee.deleteMany({
             where:{
                 id: params.employeeId,
             },
-        });
-       
+          });
+        } else {
+         employee = await prismadb.employee.update({
+            where:{
+                id: params.employeeId,
+            },
+            data:{
+              teams:{
+                disconnect:{
+                  id: params.teamId
+                }
+              }
+            }
+          });
+        }
+        
 
         return NextResponse.json(employee);
 
